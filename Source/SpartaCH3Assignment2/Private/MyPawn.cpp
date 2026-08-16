@@ -1,5 +1,7 @@
 #include "MyPawn.h"
 
+#include "EnhancedInputComponent.h"
+
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -35,4 +37,14 @@ void AMyPawn::Tick(float DeltaTime)
 void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
+
+void AMyPawn::Move(const FInputActionValue& value)
+{
+	if (!Controller) return;
+}
+
+void AMyPawn::Look(const FInputActionValue& value)
+{
+	if (!Controller) return;
 }
