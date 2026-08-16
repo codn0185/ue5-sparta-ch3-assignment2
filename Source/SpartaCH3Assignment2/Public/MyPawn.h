@@ -30,6 +30,9 @@ class SPARTACH3ASSIGNMENT2_API AMyPawn : public APawn
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 	UCameraComponent* CameraComp;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	FVector MoveSpeed;
+
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

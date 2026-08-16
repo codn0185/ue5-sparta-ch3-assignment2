@@ -23,6 +23,8 @@ AMyPawn::AMyPawn()
 
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	CameraComp->SetupAttachment(SpringArmComp);
+
+	MoveSpeed = FVector(30.0f, 0.0f, 0.0f);
 }
 
 void AMyPawn::BeginPlay()
@@ -33,6 +35,9 @@ void AMyPawn::BeginPlay()
 void AMyPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	FVector NewLocation = GetActorLocation() + MoveSpeed * DeltaTime;
+	SetActorLocation(NewLocation);
 }
 
 void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
