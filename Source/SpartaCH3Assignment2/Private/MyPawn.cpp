@@ -1,6 +1,7 @@
 #include "MyPawn.h"
 
 #include "EnhancedInputComponent.h"
+#include "MyPlayerController.h"
 
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -37,6 +38,30 @@ void AMyPawn::Tick(float DeltaTime)
 void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInput = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		if (AMyPlayerController* PlayerController = Cast<AMyPlayerController>(GetController()))
+		{
+			if (PlayerController->MoveInputAction)
+			{
+				EnhancedInput->BindAction(
+					PlayerController->MoveInputAction,
+					ETriggerEvent::Triggered,
+					this,
+					&AMyPawn::Move);
+			}
+
+			if (PlayerController->LookInputAction)
+			{
+				EnhancedInput->BindAction(
+					PlayerController->LookInputAction,
+					ETriggerEvent::Triggered,
+					this,
+					&AMyPawn::Look);
+			}
+		}
+	}
 }
 
 void AMyPawn::Move(const FInputActionValue& value)
