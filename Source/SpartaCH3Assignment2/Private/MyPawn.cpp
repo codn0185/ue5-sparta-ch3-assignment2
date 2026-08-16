@@ -1,0 +1,38 @@
+#include "MyPawn.h"
+
+#include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+
+AMyPawn::AMyPawn()
+{
+	PrimaryActorTick.bCanEverTick = true;
+
+	CapsuleComp = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
+	SetRootComponent(CapsuleComp);
+
+	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
+	SkeletalMeshComp->SetupAttachment(CapsuleComp);
+	SkeletalMeshComp->SetSimulatePhysics(false);  // 물리 대신 코드로 직접 제어
+
+	SpringArmComp = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
+	SpringArmComp->SetupAttachment(CapsuleComp);
+
+	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	CameraComp->SetupAttachment(SpringArmComp);
+}
+
+void AMyPawn::BeginPlay()
+{
+	Super::BeginPlay();
+}
+
+void AMyPawn::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+}
+
+void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+}
