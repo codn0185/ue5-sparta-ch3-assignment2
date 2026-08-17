@@ -89,4 +89,9 @@ void AMyPawn::Move(const FInputActionValue& value)
 void AMyPawn::Look(const FInputActionValue& value)
 {
 	if (!Controller) return;
+
+	const FVector2D& LookInput = value.Get<FVector2D>();
+
+	FRotator DeltaRotator(LookInput.Y, LookInput.X, 0.0f);
+	AddActorLocalRotation(DeltaRotator, true);
 }
