@@ -29,12 +29,13 @@ AMyPawn::AMyPawn()
 	GravityAcceleration = 980.0f;
 	DragCoefficient = 0.02f;
 
-	InputForceScale = FVector(5000.0f, 5000.0f, 15000.0f);
+	InputForceScale = FVector(8000.0f, 8000.0f, 15000.0f);
 	Mass = 10.0f;
 
 	Velocity = FVector::ZeroVector;
 	Acceleration = FVector::ZeroVector;
 	InputForce = FVector::ZeroVector;
+	InAirControlScale = 0.5f;
 	bIsFalling = true;
 }
 
@@ -48,27 +49,23 @@ void AMyPawn::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	// 1. 힘 합산
-	FVector TotalForce =
+	const FVector TotalForce =
 		InputForce +                                                                             // 입력 힘
 		(bIsFalling ? FVector(0.0f, 0.0f, -GravityAcceleration * Mass) : FVector::ZeroVector) +  // 중력
 		-Velocity * Velocity.Size() * DragCoefficient;                                           // 공기 저항
 
 	// 2. 가속도 업데이트
-	const FVector TargetAcceleration = TotalForce / Mass;
-	Acceleration = TargetAcceleration;
-	/*float DynamicSpeed = 1000.0f * 2.0f * Acceleration.Size();
-
-	Acceleration = FMath::VInterpConstantTo(
-		Acceleration,
-		TargetAcceleration,
-		DeltaTime,
-		DynamicSpeed);*/
+	Acceleration = TotalForce / Mass;
 
 	// 3. 속도 업데이트
 	Velocity += Acceleration * DeltaTime;
 
 	// 4. 이동 확인
-	FVector DeltaLocation = Velocity * DeltaTime;
+	const FVector ControlScale = bIsFalling
+									 ? FVector(InAirControlScale, InAirControlScale, 1.0f)
+									 : FVector(1.0f, 1.0f, 1.0f);
+
+	const FVector DeltaLocation = Velocity * ControlScale * DeltaTime;
 	if (DeltaLocation.IsNearlyZero())
 	{
 		InputForce = FVector::ZeroVector;
