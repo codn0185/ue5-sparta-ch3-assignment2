@@ -49,7 +49,7 @@ class SPARTACH3ASSIGNMENT2_API AMyPawn : public APawn
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	float InAirControlScale;  // 공중 속도 배율
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Properties")
-	bool bIsFalling;  // 공중 여부
+	bool bIsInAir;  // 공중 여부
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
