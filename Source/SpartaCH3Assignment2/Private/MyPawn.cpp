@@ -27,10 +27,10 @@ AMyPawn::AMyPawn()
 	CameraComp->SetupAttachment(SpringArmComp);
 
 	GravityAcceleration = 980.0f;
-	DragCoefficient = 0.02f;
+	DragCoefficient = 0.001f;
 	GroundFriction = 10.0f;
 
-	InputForceScale = FVector(8000.0f, 8000.0f, 15000.0f);
+	InputForceScale = FVector(8000.0f, 8000.0f, 3000.0f);
 	Mass = 10.0f;
 
 	Velocity = FVector::ZeroVector;
