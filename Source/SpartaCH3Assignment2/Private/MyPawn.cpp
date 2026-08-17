@@ -54,7 +54,7 @@ void AMyPawn::Tick(float DeltaTime)
 
 	// 2. 가속도 업데이트
 	FVector TargetAcceleration = TotalForce / Mass;
-	float DynamicSpeed = 200.0f * (5.0f + Acceleration.Size() * 0.01f);
+	float DynamicSpeed = 1000.0f * 2.0f * Acceleration.Size();
 
 	Acceleration = FMath::VInterpConstantTo(
 		Acceleration,
