@@ -112,19 +112,69 @@ void AMyPawn::Move(const FInputActionValue& value)
 
 	const FVector& MoveInput = value.Get<FVector>();
 
+	FVector DeltaLocation = FVector::ZeroVector;
+
 	if (!FMath::IsNearlyZero(MoveInput.X))
 	{
-		AddActorLocalOffset(GetActorForwardVector() * MoveInput.X, true);
+		DeltaLocation += GetActorForwardVector() * MoveInput.X;
 	}
 
 	if (!FMath::IsNearlyZero(MoveInput.Y))
 	{
-		AddActorLocalOffset(GetActorRightVector() * MoveInput.Y, true);
+		DeltaLocation += GetActorRightVector() * MoveInput.Y;
 	}
 
 	if (!FMath::IsNearlyZero(MoveInput.Z))
 	{
-		AddActorLocalOffset(GetActorUpVector() * MoveInput.Z, true);
+		DeltaLocation += GetActorUpVector() * MoveInput.Z;
+	}
+
+	if (DeltaLocation.IsNearlyZero())
+	{
+		return;
+	}
+
+	// 충돌 감지
+	FHitResult HitResult;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	const FVector& StartLocation = GetActorLocation();
+	const FVector& EndLocation = StartLocation + DeltaLocation;
+
+	const float CapsuleRadius = CapsuleComp->GetScaledCapsuleRadius();
+	const float CapsuleHalfHeight = CapsuleComp->GetScaledCapsuleHalfHeight();
+	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight);
+
+	const bool bHit = GetWorld()->SweepSingleByChannel(
+		HitResult,
+		StartLocation,
+		EndLocation,
+		FQuat::Identity,
+		ECollisionChannel::ECC_Visibility,
+		CapsuleShape,
+		QueryParams);
+
+	if (bHit)
+	{
+		if (HitResult.bStartPenetrating)
+		{
+			// 이미 겹친 상태면 살짝 밖으로 밀어냄
+			AddActorWorldOffset(HitResult.Normal * HitResult.PenetrationDepth, false);
+			return;
+		}
+
+		// 충돌 지점 직전까지만 이동
+		const float MoveDistance = (EndLocation - StartLocation).Size();
+		const float SafeDistance = FMath::Max(HitResult.Distance - 1.0f, 0.0f);
+		const FVector SafeMove = DeltaLocation.GetSafeNormal() * SafeDistance;
+
+		AddActorWorldOffset(SafeMove, false);
+	}
+	else
+	{
+		AddActorLocalOffset(DeltaLocation, true);
 	}
 }
 
