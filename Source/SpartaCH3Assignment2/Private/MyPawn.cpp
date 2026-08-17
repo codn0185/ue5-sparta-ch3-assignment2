@@ -72,6 +72,18 @@ void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 void AMyPawn::Move(const FInputActionValue& value)
 {
 	if (!Controller) return;
+
+	const FVector2D& MoveInput = value.Get<FVector2D>();
+
+	if (!FMath::IsNearlyZero(MoveInput.X))
+	{
+		AddActorLocalOffset(GetActorForwardVector() * MoveInput.X, true);
+	}
+
+	if (!FMath::IsNearlyZero(MoveInput.Y))
+	{
+		AddActorLocalOffset(GetActorRightVector() * MoveInput.Y, true);
+	}
 }
 
 void AMyPawn::Look(const FInputActionValue& value)
