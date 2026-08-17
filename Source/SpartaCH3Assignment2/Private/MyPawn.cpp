@@ -50,9 +50,9 @@ void AMyPawn::Tick(float DeltaTime)
 
 	// 1. 힘 합산
 	const FVector TotalForce =
-		InputForce +                                                                             // 입력 힘
+		InputForce +                                                                           // 입력 힘
 		(bIsInAir ? FVector(0.0f, 0.0f, -GravityAcceleration * Mass) : FVector::ZeroVector) +  // 중력
-		-Velocity * Velocity.Size() * DragCoefficient;                                           // 공기 저항
+		-Velocity * Velocity.Size() * DragCoefficient;                                         // 공기 저항
 
 	// 2. 가속도 업데이트
 	Acceleration = TotalForce / Mass;
@@ -74,7 +74,6 @@ void AMyPawn::Tick(float DeltaTime)
 
 	// 5. 충돌 검사
 	const FVector StartLocation = GetActorLocation();
-	const FVector EndLocation = StartLocation + DeltaLocation;
 
 	FHitResult HitResult;
 	FCollisionQueryParams QueryParams;
@@ -84,34 +83,72 @@ void AMyPawn::Tick(float DeltaTime)
 	const float CapsuleHalfHeight = CapsuleComp->GetScaledCapsuleHalfHeight();
 	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight);
 
-	const bool bHit = GetWorld()->SweepSingleByChannel(
-		HitResult,
-		StartLocation,
-		EndLocation,
-		FQuat::Identity,
-		ECollisionChannel::ECC_Visibility,
-		CapsuleShape,
-		QueryParams);
-
-	bIsInAir = true;
-
 	// 6. 위치 업데이트
-	if (bHit)  // 지면 충돌 - 충돌 직전까지 이동 및 속도/가속도 초기화
-	{
-		const float SafeDistance = FMath::Max(HitResult.Distance * 0.95f, 0.0f);
-		const FVector SafeMove = DeltaLocation.GetSafeNormal() * SafeDistance;
-		AddActorWorldOffset(SafeMove, false);
+	FVector CurrentDelta = DeltaLocation;
 
-		if (HitResult.ImpactNormal.Z > 0.7f)
-		{
-			Velocity.Z = FMath::Max(Velocity.Z, 0.0f);
-			Acceleration.Z = FMath::Max(Acceleration.Z, 0.0f);
-			bIsInAir = false;
-		}
-	}
-	else
+	// 최대 3회 루프 (코너나 경사면 등 확인)
+	bIsInAir = true;
+	for (int32 Iteration = 0; Iteration < 3; ++Iteration)
 	{
-		AddActorWorldOffset(DeltaLocation, false);
+		// 매 루프마다 현재 위치 기준의 최종 목적지 계산
+		const FVector EndLocation = GetActorLocation() + CurrentDelta;
+
+		// SweepSingleByChannel을 사용해 충돌 테스트
+		const bool bLoopHit = GetWorld()->SweepSingleByChannel(
+			HitResult,
+			GetActorLocation(),
+			EndLocation,
+			FQuat::Identity,
+			ECollisionChannel::ECC_Visibility,
+			CapsuleShape,
+			QueryParams);
+
+		if (bLoopHit)  // 충돌 발생
+		{
+			// 겹친 경우 위치 보정
+			if (HitResult.bStartPenetrating)
+			{
+				FVector DepenetrationVector = HitResult.Normal * (HitResult.PenetrationDepth + 0.01f);
+				AddActorWorldOffset(DepenetrationVector, false);
+				bIsInAir = false;
+				continue;  // 위치가 수정되었으므로 다음 루프에서 다시 충돌 테스트 시도
+			}
+
+			// 충돌 직전까지 실제로 이동
+			FVector MoveToWall = CurrentDelta * HitResult.Time;
+			AddActorWorldOffset(MoveToWall, false);
+
+			// 충돌 직전까지 남은 이동 거리 계산
+			FVector RemainingDelta = CurrentDelta * (1.0f - HitResult.Time);
+
+			// 부딪힌 표면이 걸어갈 수 있는 바닥(경사면)인지 판단 (Normal.Z가 0.7 이상이면 약 45도 이하 경사)
+			const bool bIsWalkableFloor = HitResult.Normal.Z > 0.7f;
+			if (bIsWalkableFloor)  // 바닥 O - 수평 이동 속도를 경사면에 평행하게 투영 (속도 저하 해결)
+			{
+				CurrentDelta = FVector::VectorPlaneProject(RemainingDelta, HitResult.Normal);
+			}
+			else  // 바닥 X
+			{
+				float PlaneDot = FVector::DotProduct(RemainingDelta, HitResult.Normal);
+				if (PlaneDot < 0.0f)
+				{
+					CurrentDelta = RemainingDelta - (HitResult.Normal * PlaneDot);
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			// 속도(Velocity) 변수도 표면 법선에 맞춰 평면 투영으로 동기화 (감속 방지)
+			Velocity = FVector::VectorPlaneProject(Velocity, HitResult.Normal);
+		}
+		else
+		{
+			// 더 이상 충돌이 없으므로 남은 이동량만큼 최종 이동 후 루프 종료
+			AddActorWorldOffset(CurrentDelta, false);
+			break;
+		}
 	}
 
 	// 7. 입력 힘 초기화
