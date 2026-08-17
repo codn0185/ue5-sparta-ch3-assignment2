@@ -28,6 +28,7 @@ AMyPawn::AMyPawn()
 
 	GravityAcceleration = 980.0f;
 	DragCoefficient = 0.02f;
+	GroundFriction = 10.0f;
 
 	InputForceScale = FVector(8000.0f, 8000.0f, 15000.0f);
 	Mass = 10.0f;
@@ -35,7 +36,7 @@ AMyPawn::AMyPawn()
 	Velocity = FVector::ZeroVector;
 	Acceleration = FVector::ZeroVector;
 	InputForce = FVector::ZeroVector;
-	InAirControlScale = 0.5f;
+	InAirControlScale = 1.0f;  // 지면 마찰력 적용으로 해당 값 사용 X (1.0f으로 설정)
 	bIsInAir = true;
 }
 
@@ -50,9 +51,9 @@ void AMyPawn::Tick(float DeltaTime)
 
 	// 1. 힘 합산
 	const FVector TotalForce =
-		InputForce +                                                                           // 입력 힘
-		(bIsInAir ? FVector(0.0f, 0.0f, -GravityAcceleration * Mass) : FVector::ZeroVector) +  // 중력
-		-Velocity * Velocity.Size() * DragCoefficient;                                         // 공기 저항
+		InputForce +                                                                                     // 입력 힘
+		(bIsInAir ? FVector(0.0f, 0.0f, -GravityAcceleration * Mass) : FVector::ZeroVector) +            // 중력
+		(bIsInAir ? -Velocity * Velocity.Size() * DragCoefficient : -Velocity * GroundFriction * Mass);  // 공기 저항 or 지면 마찰력
 
 	// 2. 가속도 업데이트
 	Acceleration = TotalForce / Mass;

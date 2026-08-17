@@ -34,6 +34,8 @@ class SPARTACH3ASSIGNMENT2_API AMyPawn : public APawn
 	float GravityAcceleration;  // 중력가속도 (cm/s^2)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	float DragCoefficient;  // 공기저항 계수
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	float GroundFriction;  // 마찰 계수
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	FVector InputForceScale;  // 입력 힘 배율
