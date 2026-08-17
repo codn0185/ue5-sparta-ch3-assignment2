@@ -46,6 +46,8 @@ class SPARTACH3ASSIGNMENT2_API AMyPawn : public APawn
 	FVector Acceleration;  // 가속도 (cm/s^2)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	FVector InputForce;  // 입력 힘 (F = m * a)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Properties")
+	bool bIsFalling;  // 공중 여부
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;

@@ -35,6 +35,7 @@ AMyPawn::AMyPawn()
 	Velocity = FVector::ZeroVector;
 	Acceleration = FVector::ZeroVector;
 	InputForce = FVector::ZeroVector;
+	bIsFalling = true;
 }
 
 void AMyPawn::BeginPlay()
@@ -48,19 +49,20 @@ void AMyPawn::Tick(float DeltaTime)
 
 	// 1. 힘 합산
 	FVector TotalForce =
-		InputForce +                                        // 입력 힘
-		FVector(0.0f, 0.0f, -GravityAcceleration * Mass) +  // 중력
-		-Velocity * Velocity.Size() * DragCoefficient;      // 공기 저항
+		InputForce +                                                                             // 입력 힘
+		(bIsFalling ? FVector(0.0f, 0.0f, -GravityAcceleration * Mass) : FVector::ZeroVector) +  // 중력
+		-Velocity * Velocity.Size() * DragCoefficient;                                           // 공기 저항
 
 	// 2. 가속도 업데이트
-	FVector TargetAcceleration = TotalForce / Mass;
-	float DynamicSpeed = 1000.0f * 2.0f * Acceleration.Size();
+	const FVector TargetAcceleration = TotalForce / Mass;
+	Acceleration = TargetAcceleration;
+	/*float DynamicSpeed = 1000.0f * 2.0f * Acceleration.Size();
 
 	Acceleration = FMath::VInterpConstantTo(
 		Acceleration,
 		TargetAcceleration,
 		DeltaTime,
-		DynamicSpeed);
+		DynamicSpeed);*/
 
 	// 3. 속도 업데이트
 	Velocity += Acceleration * DeltaTime;
@@ -94,8 +96,10 @@ void AMyPawn::Tick(float DeltaTime)
 		CapsuleShape,
 		QueryParams);
 
+	bIsFalling = true;
+
 	// 6. 위치 업데이트
-	if (bHit)  // 충돌 - 충돌 직전까지 이동 및 속도/가속도 초기화
+	if (bHit)  // 지면 충돌 - 충돌 직전까지 이동 및 속도/가속도 초기화
 	{
 		const float SafeDistance = FMath::Max(HitResult.Distance * 0.95f, 0.0f);
 		const FVector SafeMove = DeltaLocation.GetSafeNormal() * SafeDistance;
@@ -105,6 +109,7 @@ void AMyPawn::Tick(float DeltaTime)
 		{
 			Velocity.Z = FMath::Max(Velocity.Z, 0.0f);
 			Acceleration.Z = FMath::Max(Acceleration.Z, 0.0f);
+			bIsFalling = false;
 		}
 	}
 	else
