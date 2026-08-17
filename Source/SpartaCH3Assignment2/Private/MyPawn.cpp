@@ -49,15 +49,22 @@ void AMyPawn::Tick(float DeltaTime)
 	QueryParams.AddIgnoredActor(this);
 
 	const FVector& StartLocation = GetActorLocation();
-	const FVector& EndLocation = StartLocation + FVector(0.0f, 0.0f, -1.0f) * (CapsuleComp->GetScaledCapsuleHalfHeight() + 5.0f);
+	const FVector& EndLocation = StartLocation + FVector::DownVector * 3.0f;
 
-	bool bSuccess = GetWorld()->LineTraceSingleByChannel(
+	const float CapsuleRadius = CapsuleComp->GetScaledCapsuleRadius();
+	const float CapsuleHalfHeight = CapsuleComp->GetScaledCapsuleHalfHeight();
+	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight);
+
+	const bool bHit = GetWorld()->SweepSingleByChannel(
 		HitResult,
 		StartLocation,
 		EndLocation,
+		FQuat::Identity,
 		ECollisionChannel::ECC_Visibility,
+		CapsuleShape,
 		QueryParams);
-	if (bSuccess)  // 지면 충돌 O -> Z축 속도 0
+
+	if (bHit)  // 지면 충돌 O -> Z축 속도 0
 	{
 		Velocity.Z = 0.0f;
 	}
