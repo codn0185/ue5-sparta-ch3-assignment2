@@ -73,7 +73,7 @@ void AMyPawn::Move(const FInputActionValue& value)
 {
 	if (!Controller) return;
 
-	const FVector2D& MoveInput = value.Get<FVector2D>();
+	const FVector& MoveInput = value.Get<FVector>();
 
 	if (!FMath::IsNearlyZero(MoveInput.X))
 	{
@@ -84,14 +84,19 @@ void AMyPawn::Move(const FInputActionValue& value)
 	{
 		AddActorLocalOffset(GetActorRightVector() * MoveInput.Y, true);
 	}
+
+	if (!FMath::IsNearlyZero(MoveInput.Z))
+	{
+		AddActorLocalOffset(GetActorUpVector() * MoveInput.Z, true);
+	}
 }
 
 void AMyPawn::Look(const FInputActionValue& value)
 {
 	if (!Controller) return;
 
-	const FVector2D& LookInput = value.Get<FVector2D>();
+	const FVector& LookInput = value.Get<FVector>();
 
-	FRotator DeltaRotator(LookInput.Y, LookInput.X, 0.0f);
+	FRotator DeltaRotator(LookInput.Y, LookInput.X, LookInput.Z);
 	AddActorLocalRotation(DeltaRotator, true);
 }
