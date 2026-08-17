@@ -13,6 +13,7 @@ AMyPawn::AMyPawn()
 
 	CapsuleComp = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
 	SetRootComponent(CapsuleComp);
+	CapsuleComp->SetSimulatePhysics(false);  // 물리 대신 코드로 직접 제어
 
 	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
 	SkeletalMeshComp->SetupAttachment(CapsuleComp);
@@ -24,7 +25,7 @@ AMyPawn::AMyPawn()
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	CameraComp->SetupAttachment(SpringArmComp);
 
-	MoveSpeed = FVector(30.0f, 0.0f, 0.0f);
+	MoveOffset = FVector(30.0f, 0.0f, 0.0f);
 }
 
 void AMyPawn::BeginPlay()
@@ -36,8 +37,7 @@ void AMyPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FVector NewLocation = GetActorLocation() + MoveSpeed * DeltaTime;
-	SetActorLocation(NewLocation);
+	AddActorWorldOffset(MoveOffset * DeltaTime, true);
 }
 
 void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
