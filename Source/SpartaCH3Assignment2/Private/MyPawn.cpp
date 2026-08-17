@@ -26,6 +26,7 @@ AMyPawn::AMyPawn()
 	CameraComp->SetupAttachment(SpringArmComp);
 
 	MoveOffset = FVector(30.0f, 0.0f, 0.0f);
+	MoveScale = FVector(1.0f, 1.0f, 1.0f);
 
 	GravityAcceleration = 980.0f;
 	Velocity = FVector::ZeroVector;
@@ -116,17 +117,17 @@ void AMyPawn::Move(const FInputActionValue& value)
 
 	if (!FMath::IsNearlyZero(MoveInput.X))
 	{
-		DeltaLocation += GetActorForwardVector() * MoveInput.X;
+		DeltaLocation += GetActorForwardVector() * MoveScale.X * MoveInput.X;
 	}
 
 	if (!FMath::IsNearlyZero(MoveInput.Y))
 	{
-		DeltaLocation += GetActorRightVector() * MoveInput.Y;
+		DeltaLocation += GetActorRightVector() * MoveScale.Y * MoveInput.Y;
 	}
 
 	if (!FMath::IsNearlyZero(MoveInput.Z))
 	{
-		DeltaLocation += GetActorUpVector() * MoveInput.Z;
+		DeltaLocation += GetActorUpVector() * MoveScale.Z * MoveInput.Z;
 	}
 
 	if (DeltaLocation.IsNearlyZero())

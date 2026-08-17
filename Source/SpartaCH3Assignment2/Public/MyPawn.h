@@ -32,6 +32,8 @@ class SPARTACH3ASSIGNMENT2_API AMyPawn : public APawn
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	FVector MoveOffset;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	FVector MoveScale;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	float GravityAcceleration;  // 중력가속도 (cm/s^2)
