@@ -26,6 +26,9 @@ AMyPawn::AMyPawn()
 	CameraComp->SetupAttachment(SpringArmComp);
 
 	MoveOffset = FVector(30.0f, 0.0f, 0.0f);
+
+	GravityAcceleration = 980.0f;
+	Velocity = FVector::ZeroVector;
 }
 
 void AMyPawn::BeginPlay()
@@ -37,7 +40,13 @@ void AMyPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	AddActorWorldOffset(MoveOffset * DeltaTime, true);
+	// AddActorWorldOffset(MoveOffset * DeltaTime, true);
+
+	// 중력 설정 (-9.8m/s^2)
+	Velocity.Z += -GravityAcceleration * DeltaTime;            // v = v0 + a * t
+	Velocity.Z = FMath::Clamp(Velocity.Z, -4000.0f, 4000.0f);  // 종단속도 설정
+	const FVector& DeltaLocation = Velocity * DeltaTime;       // s = v * t
+	AddActorWorldOffset(DeltaLocation, true);                  // 월드 기준 아래로 이동
 }
 
 void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
