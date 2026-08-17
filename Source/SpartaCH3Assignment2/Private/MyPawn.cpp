@@ -42,11 +42,32 @@ void AMyPawn::Tick(float DeltaTime)
 
 	// AddActorWorldOffset(MoveOffset * DeltaTime, true);
 
-	// 중력 설정 (-9.8m/s^2)
-	Velocity.Z += -GravityAcceleration * DeltaTime;            // v = v0 + a * t
-	Velocity.Z = FMath::Clamp(Velocity.Z, -4000.0f, 4000.0f);  // 종단속도 설정
-	const FVector& DeltaLocation = Velocity * DeltaTime;       // s = v * t
-	AddActorWorldOffset(DeltaLocation, true);                  // 월드 기준 아래로 이동
+	// 충돌 감지
+	FHitResult HitResult;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	const FVector& StartLocation = GetActorLocation();
+	const FVector& EndLocation = StartLocation + FVector(0.0f, 0.0f, -1.0f) * (CapsuleComp->GetScaledCapsuleHalfHeight() + 5.0f);
+
+	bool bSuccess = GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		StartLocation,
+		EndLocation,
+		ECollisionChannel::ECC_Visibility,
+		QueryParams);
+	if (bSuccess)  // 지면 충돌 O -> Z축 속도 0
+	{
+		Velocity.Z = 0.0f;
+	}
+	else  // 지면 충돌 X -> 중력 적용
+	{
+		Velocity.Z += -GravityAcceleration * DeltaTime;            // v = v0 + a * t
+		Velocity.Z = FMath::Clamp(Velocity.Z, -4000.0f, 4000.0f);  // 종단속도 설정
+		const FVector& DeltaLocation = Velocity * DeltaTime;       // s = v * t
+		AddActorWorldOffset(DeltaLocation, true);                  // 월드 기준 아래로 이동
+	}
 }
 
 void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
