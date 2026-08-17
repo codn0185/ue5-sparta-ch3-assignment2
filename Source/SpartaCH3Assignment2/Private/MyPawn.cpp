@@ -14,6 +14,7 @@ AMyPawn::AMyPawn()
 	CapsuleComp = CreateDefaultSubobject<UCapsuleComponent>(TEXT("Capsule"));
 	SetRootComponent(CapsuleComp);
 	CapsuleComp->SetSimulatePhysics(false);  // 물리 대신 코드로 직접 제어
+	CapsuleComp->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	SkeletalMeshComp = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
 	SkeletalMeshComp->SetupAttachment(CapsuleComp);
@@ -25,11 +26,15 @@ AMyPawn::AMyPawn()
 	CameraComp = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	CameraComp->SetupAttachment(SpringArmComp);
 
-	MoveOffset = FVector(30.0f, 0.0f, 0.0f);
-	MoveScale = FVector(1.0f, 1.0f, 1.0f);
-
 	GravityAcceleration = 980.0f;
+	DragCoefficient = 0.02f;
+
+	InputForceScale = FVector(5000.0f, 5000.0f, 15000.0f);
+	Mass = 10.0f;
+
 	Velocity = FVector::ZeroVector;
+	Acceleration = FVector::ZeroVector;
+	InputForce = FVector::ZeroVector;
 }
 
 void AMyPawn::BeginPlay()
@@ -41,16 +46,40 @@ void AMyPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// AddActorWorldOffset(MoveOffset * DeltaTime, true);
+	// 1. 힘 합산
+	FVector TotalForce =
+		InputForce +                                        // 입력 힘
+		FVector(0.0f, 0.0f, -GravityAcceleration * Mass) +  // 중력
+		-Velocity * Velocity.Size() * DragCoefficient;      // 공기 저항
 
-	// 충돌 감지
+	// 2. 가속도 업데이트
+	FVector TargetAcceleration = TotalForce / Mass;
+	float DynamicSpeed = 200.0f * (5.0f + Acceleration.Size() * 0.01f);
+
+	Acceleration = FMath::VInterpConstantTo(
+		Acceleration,
+		TargetAcceleration,
+		DeltaTime,
+		DynamicSpeed);
+
+	// 3. 속도 업데이트
+	Velocity += Acceleration * DeltaTime;
+
+	// 4. 이동 확인
+	FVector DeltaLocation = Velocity * DeltaTime;
+	if (DeltaLocation.IsNearlyZero())
+	{
+		InputForce = FVector::ZeroVector;
+		return;
+	}
+
+	// 5. 충돌 검사
+	const FVector StartLocation = GetActorLocation();
+	const FVector EndLocation = StartLocation + DeltaLocation;
+
 	FHitResult HitResult;
-
 	FCollisionQueryParams QueryParams;
 	QueryParams.AddIgnoredActor(this);
-
-	const FVector& StartLocation = GetActorLocation();
-	const FVector& EndLocation = StartLocation + FVector::DownVector * 3.0f;
 
 	const float CapsuleRadius = CapsuleComp->GetScaledCapsuleRadius();
 	const float CapsuleHalfHeight = CapsuleComp->GetScaledCapsuleHalfHeight();
@@ -65,17 +94,26 @@ void AMyPawn::Tick(float DeltaTime)
 		CapsuleShape,
 		QueryParams);
 
-	if (bHit)  // 지면 충돌 O -> Z축 속도 0
+	// 6. 위치 업데이트
+	if (bHit)  // 충돌 - 충돌 직전까지 이동 및 속도/가속도 초기화
 	{
-		Velocity.Z = 0.0f;
+		const float SafeDistance = FMath::Max(HitResult.Distance * 0.95f, 0.0f);
+		const FVector SafeMove = DeltaLocation.GetSafeNormal() * SafeDistance;
+		AddActorWorldOffset(SafeMove, false);
+
+		if (HitResult.ImpactNormal.Z > 0.7f)
+		{
+			Velocity.Z = FMath::Max(Velocity.Z, 0.0f);
+			Acceleration.Z = FMath::Max(Acceleration.Z, 0.0f);
+		}
 	}
-	else  // 지면 충돌 X -> 중력 적용
+	else
 	{
-		Velocity.Z += -GravityAcceleration * DeltaTime;            // v = v0 + a * t
-		Velocity.Z = FMath::Clamp(Velocity.Z, -4000.0f, 4000.0f);  // 종단속도 설정
-		const FVector& DeltaLocation = Velocity * DeltaTime;       // s = v * t
-		AddActorWorldOffset(DeltaLocation, true);                  // 월드 기준 아래로 이동
+		AddActorWorldOffset(DeltaLocation, false);
 	}
+
+	// 7. 입력 힘 초기화
+	InputForce = FVector::ZeroVector;
 }
 
 void AMyPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -113,70 +151,23 @@ void AMyPawn::Move(const FInputActionValue& value)
 
 	const FVector& MoveInput = value.Get<FVector>();
 
-	FVector DeltaLocation = FVector::ZeroVector;
-
+	FVector DeltaLocalForce;
 	if (!FMath::IsNearlyZero(MoveInput.X))
 	{
-		DeltaLocation += GetActorForwardVector() * MoveScale.X * MoveInput.X;
+		DeltaLocalForce.X = InputForceScale.X * MoveInput.X;
 	}
-
 	if (!FMath::IsNearlyZero(MoveInput.Y))
 	{
-		DeltaLocation += GetActorRightVector() * MoveScale.Y * MoveInput.Y;
+		DeltaLocalForce.Y = InputForceScale.Y * MoveInput.Y;
 	}
-
 	if (!FMath::IsNearlyZero(MoveInput.Z))
 	{
-		DeltaLocation += GetActorUpVector() * MoveScale.Z * MoveInput.Z;
+		DeltaLocalForce.Z = InputForceScale.Z * MoveInput.Z;
 	}
 
-	if (DeltaLocation.IsNearlyZero())
-	{
-		return;
-	}
+	InputForce = GetActorTransform().TransformVectorNoScale(DeltaLocalForce);
 
-	// 충돌 감지
-	FHitResult HitResult;
-
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-
-	const FVector& StartLocation = GetActorLocation();
-	const FVector& EndLocation = StartLocation + DeltaLocation;
-
-	const float CapsuleRadius = CapsuleComp->GetScaledCapsuleRadius();
-	const float CapsuleHalfHeight = CapsuleComp->GetScaledCapsuleHalfHeight();
-	const FCollisionShape CapsuleShape = FCollisionShape::MakeCapsule(CapsuleRadius, CapsuleHalfHeight);
-
-	const bool bHit = GetWorld()->SweepSingleByChannel(
-		HitResult,
-		StartLocation,
-		EndLocation,
-		FQuat::Identity,
-		ECollisionChannel::ECC_Visibility,
-		CapsuleShape,
-		QueryParams);
-
-	if (bHit)
-	{
-		if (HitResult.bStartPenetrating)
-		{
-			// 이미 겹친 상태면 살짝 밖으로 밀어냄
-			AddActorWorldOffset(HitResult.Normal * HitResult.PenetrationDepth, false);
-			return;
-		}
-
-		// 충돌 지점 직전까지만 이동
-		const float MoveDistance = (EndLocation - StartLocation).Size();
-		const float SafeDistance = FMath::Max(HitResult.Distance - 1.0f, 0.0f);
-		const FVector SafeMove = DeltaLocation.GetSafeNormal() * SafeDistance;
-
-		AddActorWorldOffset(SafeMove, false);
-	}
-	else
-	{
-		AddActorLocalOffset(DeltaLocation, true);
-	}
+	UE_LOG(LogTemp, Warning, TEXT("MoveInput: %s"), *MoveInput.ToString());
 }
 
 void AMyPawn::Look(const FInputActionValue& value)

@@ -31,14 +31,21 @@ class SPARTACH3ASSIGNMENT2_API AMyPawn : public APawn
 	UCameraComponent* CameraComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
-	FVector MoveOffset;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
-	FVector MoveScale;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	float GravityAcceleration;  // 중력가속도 (cm/s^2)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	float DragCoefficient;  // 공기저항 계수
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	FVector InputForceScale;  // 입력 힘 배율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	float Mass;  // 질량 (kg)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
 	FVector Velocity;  // 속도 (cm/s)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	FVector Acceleration;  // 가속도 (cm/s^2)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Properties")
+	FVector InputForce;  // 입력 힘 (F = m * a)
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
